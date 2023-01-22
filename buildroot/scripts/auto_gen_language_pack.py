@@ -41,8 +41,7 @@ def get_filename(line):
 
 def dest_filepath(line):
     filename = get_filename(line).replace(".h", ".ini")
-    d_path = repo_path + output_path + "/" + filename
-    return d_path
+    return repo_path + output_path + "/" + filename
 
 def make_label(line):
     word_list = line.split()
@@ -55,23 +54,20 @@ def get_defined_name(line):
 
 def get_string(line):
     str_array = line.rsplit('"')
-    val_string = label + ':' + str_array[1]
-    has_ex = re.search(reg_ex, val_string)
-    if has_ex:
+    val_string = f'{label}:{str_array[1]}'
+    if has_ex := re.search(reg_ex, val_string):
         val_string = val_string.replace(has_ex.group(), '')
     return val_string
 
 def get_lang_sign():
     global lang_sign
-    set_file = open(repo_path + setting_path, 'r', encoding = "utf8")
-    lines_list = set_file.readlines()
-    for text_line in lines_list:
-        text_line = text_line.strip()
-        if text_line.startswith(lang_sign_prefix):
-            l = text_line.split()
-            lang_sign = l[2]
-    #print("lang sign :" + lang_sign)
-    set_file.close()
+    with open(repo_path + setting_path, 'r', encoding = "utf8") as set_file:
+        lines_list = set_file.readlines()
+        for text_line in lines_list:
+            text_line = text_line.strip()
+            if text_line.startswith(lang_sign_prefix):
+                l = text_line.split()
+                lang_sign = l[2]
 
     #####
 try:
@@ -83,35 +79,39 @@ try:
     for src_file in glob.glob(repo_path + input_path + "/" + source_file):
         key_count = 0
         file_count += 1
-        print("Processing: " + get_filename(src_file), end = ": ")
-        source_file = open(src_file, 'r', encoding = "utf8")
-        dest_file = open(dest_filepath(src_file), 'w', encoding = "utf8")
-        header = string_header.replace("_code_", get_langcode(get_filename(src_file)))
-        header = header.replace("_sign_", lang_sign)
-        dest_file.writelines(header)
-        lines_list = source_file.readlines()
+        print(f"Processing: {get_filename(src_file)}", end = ": ")
+        with open(src_file, 'r', encoding = "utf8") as source_file:
+            dest_file = open(dest_filepath(src_file), 'w', encoding = "utf8")
+            header = string_header.replace("_code_", get_langcode(get_filename(src_file)))
+            header = header.replace("_sign_", lang_sign)
+            dest_file.writelines(header)
+            lines_list = source_file.readlines()
 
-        for text_line in lines_list:
-            text_line = text_line.strip()
-            if text_line.startswith(line_start):
-                key_count += 1
-                label = make_label(text_line)
-                val_string = get_string(text_line)
-                #print(val_string)
-                if len(val_string.encode('utf-8')) > bytesize:
-                    raise Exception(">> Size of key '" + get_defined_name(text_line) + "' in " + get_filename(src_file) + " is larger than " + str(bytesize) + " Bytes!\n")
-                dest_file.writelines(val_string + "\n")
+            for text_line in lines_list:
+                text_line = text_line.strip()
+                if text_line.startswith(line_start):
+                    key_count += 1
+                    label = make_label(text_line)
+                    val_string = get_string(text_line)
+                                    #print(val_string)
+                    if len(val_string.encode('utf-8')) > bytesize:
+                        raise Exception(
+                            f">> Size of key '{get_defined_name(text_line)}' in {get_filename(src_file)} is larger than {str(bytesize)}"
+                            + " Bytes!\n"
+                        )
+                    dest_file.writelines(val_string + "\n")
 
-        dest_file.writelines("\n") #add new line at the end of the file
-        source_file.close()
+            dest_file.writelines("\n") #add new line at the end of the file
         dest_file.close()
         # shutil.copy(dest_filepath(src_file), repo_path + output_path2) #copy file to second folder
-        print("Total keywords found:" + str(key_count) + ", File generated:" + get_filename(dest_filepath(src_file)))
+        print(
+            f"Total keywords found:{str(key_count)}, File generated:{get_filename(dest_filepath(src_file))}"
+        )
 
     if file_count == 0:
         print("No files found.")
     else:
-        print("Total language files processed: " + str(file_count))
+        print(f"Total language files processed: {str(file_count)}")
 
 except:
     print("Unable to get correct path")
